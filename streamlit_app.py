@@ -192,7 +192,122 @@ def show_publisher_region_bar(df):
 			width=600,
 			height=350
 		))
+
+def show_genre_platform(df):
+	st.write('## Popular Game Genres on each Platform')
+
+	columns = list(df["Platform"].unique())
+	select_box = alt.binding_select(options=columns, name='Select a Platform:')
+	sel = alt.selection_single(fields=['Platform'], bind=select_box, init={'Platform': 'Wii'})
 	
+	# stacked bar chart
+	st.write(alt.Chart(df).transform_filter(
+		sel  
+	).mark_bar().encode(
+			x=alt.X('Year:N'),
+			y=alt.Y('sum(Global_Sales):Q', title='Sale (in millions)'),
+			color=alt.Color('Genre', scale=alt.Scale(scheme='tableau20')),
+			order=alt.Order(
+				'Genre',
+				sort='ascending'
+			)
+	).add_selection(
+		sel
+	).properties(
+		width=600,
+		height=500
+	))
+
+
+def show_game_publisher(df):
+	st.write('## Top 20 Best-selling Game for each Company/Publisher')
+
+	columns = list(df["Publisher"].unique())
+	select_box = alt.binding_select(options=columns, name='Select a Publisher:')
+	sel = alt.selection_single(fields=['Publisher'], bind=select_box, init={'Publisher': 'Nintendo'})
+	
+	# stacked bar chart
+	st.write(alt.Chart(df).transform_filter(
+		sel  
+	).mark_bar().encode(
+			x=alt.X('Year:N'),
+			y=alt.Y('sum(Global_Sales):Q', title='Sale (in millions)'),
+			color=alt.Color('Name', scale=alt.Scale(scheme='tableau20')),
+			order=alt.Order(
+				'sum(Global_Sales)',
+				sort='ascending'
+			)
+	).transform_window(
+		rank="rank(Global_Sales)",
+		sort=[alt.SortField("Global_Sales", order="descending")]
+	).transform_filter(
+		(alt.datum.rank < 20)
+	).add_selection(
+		sel
+	).properties(
+		width=1000,
+		height=500
+	))
+
+@st.cache
+def get_game_series(df):
+	games = sorted(list(df["Name"].unique()))
+	tokenized_games = [game.replace(":", "").split() for game in games]
+
+	game_series = {}
+	for idx in range(len(tokenized_games)):
+		current = tokenized_games[idx]
+		previous = tokenized_games[idx-1]
+		game_series_cnt = 0
+		for l in range(min(len(current), len(previous))):
+			if current[l] == previous[l]:
+				game_series_cnt += 1
+		if game_series_cnt >= 1:
+			game_series_name = " ".join(current[:game_series_cnt])
+			if game_series_name not in game_series:
+				game_series[game_series_name] = []
+			game_series[game_series_name].append(" ".join(current))
+			game_series[game_series_name].append(" ".join(previous))
+	
+	return game_series
+
+@st.cache
+def get_game_series_df(df, game_series):
+	new_df = df.copy()
+	def series_name(row):
+		for k in game_series:
+			if row["Name"].replace(":", "") in game_series[k]:
+				return k
+	new_df["Series_Name"] = new_df.apply(lambda row: series_name(row), axis=1)
+	return new_df
+
+def show_game_series(df):
+	st.write('## Popular Game Series')
+
+	game_series = get_game_series(df)
+	game_series_df = get_game_series_df(df, game_series)
+
+	columns = list(game_series.keys())
+	select_box = alt.binding_select(options=columns, name='Select a Game Series:')
+	sel = alt.selection_single(fields=['Series_Name'], bind=select_box, init={'Series_Name': 'Pokemon'})
+	
+	# stacked bar chart
+	st.write(alt.Chart(game_series_df).transform_filter(
+		sel
+	).mark_bar().encode(
+			x=alt.X('Year:N'),
+			y=alt.Y('Global_Sales:Q', title='Sale (in millions)'),
+			color=alt.Color('Name', scale=alt.Scale(scheme='tableau20')),
+			order=alt.Order(
+				'Global_Sales',
+				sort='ascending'
+			)
+	).add_selection(
+		sel
+	).properties(
+		width=600,
+		height=500
+	))
 
 # Intro
 st.write("# Video Game Sales Dataset")
@@ -209,3 +324,8 @@ show_game_trend_scatter(trimmed_df)
 show_game_region_bar(df)
 show_genre_region_bar(df)
 show_publisher_region_bar(df)
+
+# Game Plots
+show_genre_platform(df)
+show_game_publisher(df)
+show_game_series(df)

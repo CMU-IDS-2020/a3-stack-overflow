@@ -1,6 +1,6 @@
 # CMU Interactive Data Science Assigment 3
 
-* **Team members**: Tianyang Zhan (tzhan@andrew.cmu.edu) and Ziming He (zimingh@andrew.cmu.edu)
+* **Team members**: Tianyang Zhan (Andrew ID: tzhan, Email: tzhan@andrew.cmu.edu) and Ziming He (Andrew ID: zimingh, Email: zimingh@andrew.cmu.edu)
 * **Online URL**:  https://share.streamlit.io/cmu-ids-2020/a3-stack-overflow
 ## Instructions
 

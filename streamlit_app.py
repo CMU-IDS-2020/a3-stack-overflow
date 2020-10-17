@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
+from collections import Counter
 
 st.title("Let's analyze some Video Game Sales Data 🎮📊.")
 
@@ -274,20 +275,22 @@ def get_game_series(df):
 @st.cache
 def get_game_series_df(df, game_series):
 	new_df = df.copy()
+	game_serie_cnt = Counter()
 	def series_name(row):
 		for k in game_series:
 			if row["Name"].replace(":", "") in game_series[k]:
+				game_serie_cnt.update((k, 1))
 				return k
 	new_df["Series_Name"] = new_df.apply(lambda row: series_name(row), axis=1)
-	return new_df
+	game_serie = [game for game in game_serie_cnt if game_serie_cnt[game] > 1]
+	return new_df, game_serie
 
 def show_game_series(df):
 	st.write('## Popular Game Series')
 
 	game_series = get_game_series(df)
-	game_series_df = get_game_series_df(df, game_series)
-
-	columns = list(game_series.keys())
+	game_series_df, columns = get_game_series_df(df, game_series)
+	
 	select_box = alt.binding_select(options=columns, name='Select a Game Series:')
 	sel = alt.selection_single(fields=['Series_Name'], bind=select_box, init={'Series_Name': 'Pokemon'})
 	

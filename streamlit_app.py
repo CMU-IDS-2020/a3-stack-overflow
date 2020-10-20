@@ -9,7 +9,7 @@ data_file = "./vgsales.csv"
 
 @st.cache  # add caching so we load the data only once
 def load_data():
-	# Load the penguin data from https://github.com/allisonhorst/palmerpenguins.
+	# Load the penguin data
 	df = pd.read_csv(data_file).dropna()
 
 	trimmed_df = df.copy(deep=True)
@@ -18,8 +18,10 @@ def load_data():
 	return df, trimmed_df
 
 def show_dataset(df):
-	st.write("## Raw data in the Pandas Data Frame")
-	st.write("Dataset shape: ",df.shape)
+	st.write("## Dataset Description")
+	show_dataset_description()
+	st.write("**Dataset:**")
+	st.write("shape: ",df.shape)
 	if st.checkbox("Show Raw Data"):
 		st.write(df)	
 
@@ -29,25 +31,30 @@ def get_melt_year_df(df, columns):
 
 def show_yearly_sale(df):
 
-	st.write('## Yearly Sales in Different Regions')
+	st.write('## Yearly Sales Trend')
+	st.write("**The dataset contains yearly sales data for various games in different regions. Let's explore the sales trend in different regions through some interactions!** 👇🏻")
 
 	columns = ['NA_Sales', 'EU_Sales', 'JP_Sales', 'Other_Sales', 'Global_Sales']
 	select_box = alt.binding_select(options=columns, name='Select a Region:')
 	sel = alt.selection_single(fields=['Region Sale'], bind=select_box, init={'Region Sale': 'Global_Sales'})
 
 	# line chart
+	st.write("💡 *You can select specific region by clicking on the lines*")
+
 	data = get_melt_year_df(df, columns)
 	brush = alt.selection_single(encodings=['color'])
 
-	st.write(alt.Chart(data).mark_line(opacity=0.75).encode(
+	st.write(alt.Chart(data).mark_line(opacity=0.75,thickness=10).encode(
     	x='Year:N',
     	y=alt.Y('value:Q', title='Sale (in millions)', aggregate='sum'),
     	color=alt.condition(brush, "Region:N", alt.value('lightgrey'), scale=alt.Scale(scheme='tableau20')),
 	).add_selection(
 		brush
-	).interactive())
+	))
 
 	# bar chart
+	st.write("💡 *You can select specific region with the dropdown menu below*")
+
 	st.write(alt.Chart(df).transform_fold(
 		columns,
 		as_=['Region Sale', 'Sale']
@@ -65,7 +72,8 @@ def show_yearly_sale(df):
 
 def show_game_trend_scatter(df):
 
-	st.write('## Game Trends by Categories')
+	st.write('## Individual Game Sales')
+	st.write("**Now let's zoom in to explore individual games.**")
 
 	columns = ['Global_Sales', 'NA_Sales', 'EU_Sales', 'JP_Sales', 'Other_Sales']
 	select_box = alt.binding_select(options=columns, name='Select a Region:')
@@ -77,7 +85,9 @@ def show_game_trend_scatter(df):
 
 	brush = alt.selection_single(encodings=['color'])
 
-	st.write(alt.Chart(df).mark_point().transform_fold(
+	st.write("💡 *You can click on individual games to see the group it belongs to*")
+
+	st.write(alt.Chart(df).mark_point(opacity=0.75).transform_fold(
 		columns,
 		as_=['Select a Region:', 'Sale']
 	).transform_fold(
@@ -91,7 +101,7 @@ def show_game_trend_scatter(df):
 		brush
 	).encode(
 			x= 'Year:N',
-			y= alt.Y('Sale:Q', title='Sale (in millions)', aggregate='sum', scale=alt.Scale(zero=False)),
+			y= alt.Y('Sale:Q', title='Sale (in millions)', aggregate='sum', scale=alt.Scale()),
 			color=alt.condition(brush, "Group:N", alt.value('lightgrey'), scale=alt.Scale(scheme='tableau20')),
 			tooltip=['Name', 'Platform', 'Genre', 'Publisher']
 	).add_selection(
@@ -112,8 +122,12 @@ def get_game_agg_df(df, regions, k):
 
 
 def show_game_region_bar(df):
-	st.write('## Top 10 Popular Games in Different Regions')
-	
+	st.write('## Popular Games')
+
+	st.write("**What are the popular games in each region and over the years?🧐 Let's keep exploring!**")
+
+	st.write("💡 *You can select specific year range with slider*")
+
 	min_year, max_year = get_year_range(df)
 	selected_year = st.slider("View Top 10 Game in Year Range:", min_year, max_year, (min_year, max_year), 1)
 
@@ -124,10 +138,13 @@ def show_game_region_bar(df):
 	
 	brush = alt.selection_single(encodings=['color'])
 
+	titles = {'Global_Sales':'Global', 'NA_Sales':'North America', 
+				'EU_Sales':'Europe', 'JP_Sales': 'Japan', 'Other_Sales': 'Other Regions'}
 	for region in regions:
+		st.write("**%s**"%(titles[region]))
 		st.write(alt.Chart(new_df[region]).mark_bar().encode(
 			x=alt.X("Name:N", sort='-y'),
-			y=alt.Y(region),
+			y=alt.Y(region, title='Sale (in millions)'),
 			color=alt.Color("Name:N", scale=alt.Scale(scheme='tableau20'))
 		).properties(
 			width=600,
@@ -141,9 +158,12 @@ def get_year_range(df):
 
 def show_genre_region_bar(df):
 	
-	st.write('## Popular Genre in Different Regions')
-	
-	brush = alt.selection_single(encodings=['color'])
+	st.write('## Popular Genres')
+	st.write("**What about genres? Let's compare!**")
+
+	st.write("💡 *You can select specific year range with slider*")
+	st.write("💡 *Try clicking on one or more genres to see how they perform in different regions*")
+	brush = alt.selection_multi(encodings=['color'])
 
 	min_year, max_year = get_year_range(df)
 	selected_year = st.slider("View Popular Genre in Year Range", min_year, max_year, (min_year, max_year), 1)
@@ -153,7 +173,8 @@ def show_genre_region_bar(df):
 	hist = (alt.Chart(new_df).mark_bar().encode(
 		y=alt.Y(alt.repeat('row'), aggregate='sum', type='quantitative'),
 	))
-	st.write(alt.layer(hist.encode(
+
+	chart = alt.layer(hist.encode(
 		x=alt.X("Genre:N", sort='-y'),
 		color=alt.condition(brush, "Genre:N", alt.value('lightgrey'),scale=alt.Scale(scheme='tableau20'))
 	)).properties(
@@ -161,7 +182,8 @@ def show_genre_region_bar(df):
 		height=200
 	).repeat(row=['Global_Sales', 'NA_Sales', 'EU_Sales', 'JP_Sales', 'Other_Sales'], data=new_df).add_selection(
 		brush
-	))
+	)
+	st.write(chart)
 
 @st.cache
 def get_publisher_agg_df(df, regions, k):
@@ -171,8 +193,12 @@ def get_publisher_agg_df(df, regions, k):
 	return res
 
 def show_publisher_region_bar(df):
-	st.write('## Popular Publisher in Different Regions')
+	st.write('## Popular Publishers')
 	
+	st.write("**It might also be interesting to compare different publishers.🤔**")
+
+	st.write("💡 *You can select specific year range with slider*")
+	st.write("💡 *Hover over publishers to see the number of games they released during the time*")
 	min_year, max_year = get_year_range(df)
 	selected_year = st.slider("View Popular Publisher in Year Range:", min_year, max_year, (min_year, max_year), 1)
 
@@ -183,10 +209,13 @@ def show_publisher_region_bar(df):
 	
 	brush = alt.selection_single(encodings=['color'])
 
+	titles = {'Global_Sales':'Global', 'NA_Sales':'North America', 
+				'EU_Sales':'Europe', 'JP_Sales': 'Japan', 'Other_Sales': 'Other Regions'}
 	for region in regions:
+		st.write("**%s**"%(titles[region]))
 		st.write(alt.Chart(new_df[region]).mark_bar().encode(
 			x=alt.X("Publisher:N", sort='-y'),
-			y=alt.Y(region, title=region+" (in millions)"),
+			y=alt.Y(region, title='Sale (in millions)'),
 			color=alt.Color("Publisher:N", scale=alt.Scale(scheme='tableau20')),
 			tooltip=[alt.Tooltip(field="Name", title="Total Released Games", type="quantitative")]
 		).properties(
@@ -312,8 +341,30 @@ def show_game_series(df):
 		height=500
 	))
 
+
+def show_dataset_description():
+	st.write("This dataset contains a list of video games with sales greater than 100,000 copies. It was generated by a scrape of [vgchartz.com](vgchartz.com).");
+	st.write("**Fields:**")
+	
+	lst = ["- Rank: Ranking of overall sales",
+		"- Name: The games name",
+		"- Platform: Platform of the games release (i.e. PC,PS4, etc.)",
+		"- Year: Year of the game's release",
+		"- Genre: Genre of the game",
+		"- Publisher: Publisher of the game",
+		"- NA_Sales: Sales in North America (in millions)",
+		"- EU_Sales: Sales in Europe (in millions)",
+		"- JP_Sales: Sales in Japan (in millions)",
+		"- Other_Sales: Sales in the rest of the world (in millions)",
+		"- Global_Sales: Total worldwide sales"]
+
+	if st.checkbox("Show Field Description:"):
+		for l in lst:
+			st.write(l)
+
 # Intro
 st.write("# Video Game Sales Dataset")
+st.write("Datset collected From [Kaggle](https://www.kaggle.com/snanilim/video-games-sales-analysis-and-visualization)")
 df, trimmed_df = load_data()
 
 # Data Set

@@ -226,11 +226,17 @@ def show_publisher_region_bar(df):
 def show_genre_platform(df):
 	st.write('## Popular Game Genres on each Platform')
 
+	st.write("**Let's see how game trends evolve on each platform. Are gamers' preference changing over the decades?**")
+
 	columns = list(df["Platform"].unique())
 	select_box = alt.binding_select(options=columns, name='Select a Platform:')
 	sel = alt.selection_single(fields=['Platform'], bind=select_box, init={'Platform': 'Wii'})
 	
 	# stacked bar chart
+	st.write("💡 *You can select specific platform with the dropdown menu below*")
+	st.write("💡 *Hover over the genres to see their popularities in different regions*")
+
+
 	st.write(alt.Chart(df).transform_filter(
 		sel  
 	).mark_bar().encode(
@@ -240,7 +246,8 @@ def show_genre_platform(df):
 			order=alt.Order(
 				'Genre',
 				sort='ascending'
-			)
+			),
+			tooltip=['Genre', 'sum(NA_Sales)', 'sum(EU_Sales)', 'sum(JP_Sales)', 'sum(Other_Sales)']
 	).add_selection(
 		sel
 	).properties(
@@ -252,11 +259,16 @@ def show_genre_platform(df):
 def show_game_publisher(df):
 	st.write('## Top 20 Best-selling Game for each Company/Publisher')
 
+	st.write("**What are the most popular games by each company/publisher?**")
+
 	columns = list(df["Publisher"].unique())
 	select_box = alt.binding_select(options=columns, name='Select a Publisher:')
 	sel = alt.selection_single(fields=['Publisher'], bind=select_box, init={'Publisher': 'Nintendo'})
 	
 	# stacked bar chart
+	st.write("💡 *You can select specific publisher/company with the dropdown menu below*")
+	st.write("💡 *Hover over the game titles to see their popularities in different regions*")
+
 	st.write(alt.Chart(df).transform_filter(
 		sel  
 	).mark_bar().encode(
@@ -266,7 +278,8 @@ def show_game_publisher(df):
 			order=alt.Order(
 				'sum(Global_Sales)',
 				sort='ascending'
-			)
+			),
+			tooltip=['Name', 'sum(NA_Sales)', 'sum(EU_Sales)', 'sum(JP_Sales)', 'sum(Other_Sales)']
 	).transform_window(
 		rank="rank(Global_Sales)",
 		sort=[alt.SortField("Global_Sales", order="descending")]
@@ -317,6 +330,8 @@ def get_game_series_df(df, game_series):
 def show_game_series(df):
 	st.write('## Popular Game Series')
 
+	st.write("**Let's explore some of the most popular game series**")
+
 	game_series = get_game_series(df)
 	game_series_df, columns = get_game_series_df(df, game_series)
 	
@@ -324,6 +339,10 @@ def show_game_series(df):
 	sel = alt.selection_single(fields=['Series_Name'], bind=select_box, init={'Series_Name': 'Pokemon'})
 	
 	# stacked bar chart
+
+	st.write("💡 *You can select specific game serie with the dropdown menu below*")
+	st.write("💡 *Hover over the game titles to see their popularities in different regions*")
+
 	st.write(alt.Chart(game_series_df).transform_filter(
 		sel
 	).mark_bar().encode(
@@ -333,7 +352,8 @@ def show_game_series(df):
 			order=alt.Order(
 				'Global_Sales',
 				sort='ascending'
-			)
+			),
+			tooltip=['Name', 'sum(NA_Sales)', 'sum(EU_Sales)', 'sum(JP_Sales)', 'sum(Other_Sales)']
 	).add_selection(
 		sel
 	).properties(

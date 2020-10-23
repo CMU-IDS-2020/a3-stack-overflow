@@ -370,10 +370,10 @@ def show_game_series(df):
 		sel
 	).mark_bar().encode(
 			x=alt.X('Year:N'),
-			y=alt.Y('Global_Sales:Q', title='Sale (in millions)'),
+			y=alt.Y('sum(Global_Sales):Q', title='Sale (in millions)'),
 			color=alt.Color('Name', scale=alt.Scale(scheme='tableau20')),
 			order=alt.Order(
-				'Global_Sales',
+				'Name',
 				sort='ascending'
 			),
 			tooltip=['Name', 'Genre', 'sum(NA_Sales)', 'sum(EU_Sales)', 'sum(JP_Sales)', 'sum(Other_Sales)']

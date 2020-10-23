@@ -163,6 +163,10 @@ def show_genre_region_bar(df):
 
 	st.write("💡 *You can select specific year range with slider*")
 	st.write("💡 *Try clicking on one or more genres to see how they perform in different regions*")
+	st.write("💡 *You can also click on the individual points in the scatterplot to see other games in its genre*")
+	st.write("⌛ *Since it takes time to load the transformed data, the response may take a few seconds. Please be patient.*")
+
+
 	brush = alt.selection_multi(encodings=['color'])
 
 	min_year, max_year = get_year_range(df)
@@ -174,16 +178,35 @@ def show_genre_region_bar(df):
 		y=alt.Y(alt.repeat('row'), aggregate='sum', type='quantitative'),
 	))
 
-	chart = alt.layer(hist.encode(
+	color_scheme = alt.condition(brush, "Genre:N", alt.value('lightgrey'),scale=alt.Scale(scheme='tableau20'))
+
+	top_chart = alt.layer(hist.encode(
 		x=alt.X("Genre:N", sort='-y'),
-		color=alt.condition(brush, "Genre:N", alt.value('lightgrey'),scale=alt.Scale(scheme='tableau20'))
+		color=color_scheme
 	)).properties(
 		width=500,
 		height=200
 	).repeat(row=['Global_Sales', 'NA_Sales', 'EU_Sales', 'JP_Sales', 'Other_Sales'], data=new_df).add_selection(
 		brush
 	)
-	st.write(chart)
+
+	bottom_chart = alt.Chart(new_df).mark_point().encode(
+		x = alt.X(alt.repeat("column"), type ='quantitative', scale=alt.Scale(type='sqrt')),
+		y = alt.Y(alt.repeat("row"), type='quantitative', scale=alt.Scale(type='sqrt')),
+		color = color_scheme,
+		tooltip = ['Name']
+	).properties(
+		width=150,
+		height=150
+	).repeat(
+		row = ["NA_Sales", "EU_Sales", "JP_Sales", "Other_Sales"],
+		column = ["NA_Sales", "EU_Sales", "JP_Sales", "Other_Sales"]
+	).add_selection(
+		brush
+	)
+
+	complete_chart = alt.vconcat(top_chart, bottom_chart)
+	st.write(complete_chart)
 
 @st.cache
 def get_publisher_agg_df(df, regions, k):
@@ -251,7 +274,7 @@ def show_genre_platform(df):
 	).add_selection(
 		sel
 	).properties(
-		width=600,
+		width=800,
 		height=500
 	))
 
@@ -279,7 +302,7 @@ def show_game_publisher(df):
 				'sum(Global_Sales)',
 				sort='ascending'
 			),
-			tooltip=['Name', 'sum(NA_Sales)', 'sum(EU_Sales)', 'sum(JP_Sales)', 'sum(Other_Sales)']
+			tooltip=['Name', 'Genre', 'sum(NA_Sales)', 'sum(EU_Sales)', 'sum(JP_Sales)', 'sum(Other_Sales)']
 	).transform_window(
 		rank="rank(Global_Sales)",
 		sort=[alt.SortField("Global_Sales", order="descending")]
@@ -288,7 +311,7 @@ def show_game_publisher(df):
 	).add_selection(
 		sel
 	).properties(
-		width=1000,
+		width=800,
 		height=500
 	))
 
@@ -353,11 +376,11 @@ def show_game_series(df):
 				'Global_Sales',
 				sort='ascending'
 			),
-			tooltip=['Name', 'sum(NA_Sales)', 'sum(EU_Sales)', 'sum(JP_Sales)', 'sum(Other_Sales)']
+			tooltip=['Name', 'Genre', 'sum(NA_Sales)', 'sum(EU_Sales)', 'sum(JP_Sales)', 'sum(Other_Sales)']
 	).add_selection(
 		sel
 	).properties(
-		width=600,
+		width=800,
 		height=500
 	))
 
